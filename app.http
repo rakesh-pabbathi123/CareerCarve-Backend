@@ -71,3 +71,27 @@ GET http://localhost:3000/bookings?student_id=102
 GET http://localhost:3000/bookings?student_id=103
 ###
 GET http://localhost:3000/bookings?student_id=104
+
+###
+
+POST http://localhost:3000/schedule-session
+Content-Type: application/json
+
+{
+  "student_id": 3,
+  "area_of_interest": "Web Development",
+  "duration": 45,
+  "requested_time": "2024-08-22T19:00:00", 
+  "is_premium": false
+}
+
+###
+POST http://localhost:3000/calculate-payment 
+Content-Type: application/json" 
+
+{
+  "duration": 45,
+  "is_premium": true
+}
+
+

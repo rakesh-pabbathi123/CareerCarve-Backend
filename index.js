@@ -46,7 +46,7 @@ const initializeDBAndServer = async () => {
       );
     `);
 
-    app.listen(3000, () => {
+    app.listen(process.env.PORT || 3000, () => {
       console.log("Server Running at http://localhost:3000/");
     });
   } catch (e) {
@@ -125,4 +125,75 @@ app.post("/bookings", async (request, response) => {
     console.error("Error creating booking:", error.message);
     response.status(500).send("Internal Server Error");
   }
+});
+
+// 4. Schedule a Session with Back-to-Back Logic
+
+app.post("/schedule-session", async (request, response) => {
+  try {
+    const {
+      student_id,
+      area_of_interest,
+      duration,
+      requested_time,
+      is_premium,
+    } = request.body;
+
+    // Query to find an available mentor
+    const getMentorQuery = `
+      SELECT * FROM mentor
+      WHERE areas_of_expertise LIKE '%${area_of_interest}%'
+      AND availability = '${requested_time}'
+      AND is_premium = ${is_premium ? 1 : 0}
+      ORDER BY mentor_id
+      LIMIT 1;
+    `;
+
+    const mentor = await db.get(getMentorQuery);
+
+    if (!mentor) {
+      return response
+        .status(404)
+        .send("No available mentors for the selected area of interest");
+    }
+
+    // Insert the booking
+    const createBookingQuery = `
+      INSERT INTO booking (student_id, mentor_id, duration, scheduled_time)
+      VALUES (${student_id}, ${mentor.mentor_id}, ${duration}, '${requested_time}');
+    `;
+
+    await db.run(createBookingQuery);
+
+    response.send("Booking successfully created with mentor " + mentor.name);
+  } catch (error) {
+    console.error("Error scheduling session:", error.message);
+    response.status(500).send("Internal Server Error");
+  }
+});
+
+// 5. Calculate Payment
+app.post("/calculate-payment", (request, response) => {
+  const { duration, is_premium } = request.body;
+  let cost = 0;
+
+  switch (duration) {
+    case 30:
+      cost = 2000;
+      break;
+    case 45:
+      cost = 3000;
+      break;
+    case 60:
+      cost = 4000;
+      break;
+    default:
+      cost = 2000;
+  }
+
+  if (is_premium) {
+    cost += 1000; // Add premium charge
+  }
+
+  response.send({ cost });
 });
